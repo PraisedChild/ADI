@@ -1,7 +1,7 @@
 # AHB-Lite MASTER
 Owner: Abdelrahman Akram Ibrahim Aly
 
-## DESCRIBTION
+## DESCRIPTION
 
 AHB-Lite is a parallel bus communication protocol that allows for rapid data transmission and receival by sending the data of the previous interaction with the address of following interaction simultaniously, the MASTER is the unit that allows this communication to run smoothly by informing the slaves of the current state, mode of operation, addresses and the like, as well as handling all the errors, and waiting on slaves to get ready for communication.
 
