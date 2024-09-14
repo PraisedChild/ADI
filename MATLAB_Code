@@ -1,0 +1,159 @@
+%% Parameters for IQ Imbalance Simulation
+fm = 2e6;          % Message frequency [Hz]
+fc = 5e8;         % Carrier frequency [Hz]
+fs = 2e9;        % Sampling frequency [Hz]
+t = 0:1/fs:1e-3;   % Time vector
+
+% Ideal I and Q of message
+xi = cos(2*pi*fm*t); 
+xq = sin(2*pi*fm*t); 
+
+% Tx model: Transmit signal
+r = xi .* cos(2*pi*fc*t) - xq .* sin(2*pi*fc*t); 
+
+%% Demodulate without imbalance (Reference)
+Zi = 2 * lowpass(r .* cos(2*pi*fc*t), 0.5); 
+Zq = 2 * lowpass(r .* -sin(2*pi*fc*t), 0.5); 
+Z = Zi + 1i * Zq; 
+lz = length(Z); 
+f = ((-lz)/2:(lz-1)/2)/lz*fs; 
+
+%% Apply RX IQ imbalance (for testing)
+g_test = 1.1;         % Gain imbalance factor
+phai_test = pi/100;   % Phase imbalance (in radians)
+
+% Image Rejection Ratio with RX IQ imbalance
+Image_rejection_ratio_dB = 10*log10((1 + g_test^2 - 2 * g_test * cos(phai_test)) / ...
+                                    (1 + g_test^2 + 2 * g_test * cos(phai_test)));
+
+%% Demodulate with IQ imbalance
+ZiDash = 2 * lowpass(r .* cos(2*pi*fc*t), 0.5);               % I-component without imbalance
+ZqDash = 2 * lowpass(r .* (-g_test * sin(2*pi*fc*t + phai_test)), 0.5); % Q-component with imbalance
+ZDash = ZiDash + 1i * ZqDash;
+
+%% FFT for frequency domain analysis
+ZDash = fftshift(fft(ZDash/lz)); 
+Z = fftshift(fft(Z/lz)); 
+
+% Plot the magnitude spectra (original vs with imbalance)
+figure; 
+plot(f, abs(Z)); % Original signal
+hold on; 
+plot(f, abs(ZDash)); % Signal with RX IQ imbalance 
+xlim([-1.5*fm 1.5*fm]); 
+legend('Original Signal', 'Signal at RX with IQ Imbalance'); 
+xlabel('Frequency (Hz)'); 
+ylabel('Magnitude'); 
+title('Frequency Spectrum: Original vs. Signal at RX with IQ Imbalance'); 
+hold off;
+
+% Zoomed-in plot for signal with IQ imbalance
+figure;
+plot(f, abs(Z)); % Original signal
+hold on;
+plot(f, abs(ZDash)); % Signal with RX IQ imbalance
+xlim([0.995*fm 1.005*fm]);  % Zoom into the region around the message frequency
+legend('Original Signal', 'Signal at RX with IQ Imbalance');
+xlabel('Frequency (Hz)');
+ylabel('Magnitude');
+title('Close-up Frequency Spectrum: Original vs. Signal at RX with IQ Imbalance');
+hold off;
+
+%% QEC Algorithm (IQ Correction)
+g = sqrt(sum(abs(ZqDash).^2)) / sqrt(sum(abs(ZiDash).^2)); 
+phai = -asin(sum(ZiDash .* ZqDash) / sqrt((sum(abs(ZiDash).^2)) * (sum(abs(ZqDash).^2)))); 
+
+Zi_QEC = ZiDash; 
+Zq_QEC = ZqDash / (g * cos(phai)) + ZiDash * tan(phai); 
+Z_QEC  = Zi_QEC + 1i * Zq_QEC;  
+Z_QEC = fftshift(fft(Z_QEC/lz));
+
+% Plot Frequency Spectrum: Original vs After QEC
+figure; 
+plot(f, abs(Z)); % Original signal
+hold on; 
+plot(f, abs(Z_QEC)); % Signal after QEC 
+ylim([0 1.2]); 
+xlim([-1.5*fm 1.5*fm]); 
+legend('Original Signal', 'Signal after QEC'); 
+xlabel('Frequency (Hz)'); 
+ylabel('Magnitude'); 
+title('Frequency Spectrum: Original vs. Signal after QEC'); 
+hold off;
+
+%% Parameters for Image Rejection Ratio (IRR) Calculation
+gain_imbalances = linspace(-3, 3, 100);     % Gain imbalance range [dB]
+phase_imbalances = linspace(-6, 6, 100);    % Phase imbalance range [degrees]
+
+% Convert gain imbalance from dB to linear scale
+g_linear = 10.^(gain_imbalances / 20);
+phi_rad = deg2rad(phase_imbalances);        % Convert phase imbalance to radians
+
+% Preallocate arrays for IRR results
+IRR_gain_theory = zeros(1, length(gain_imbalances));
+IRR_phase_theory = zeros(1, length(phase_imbalances));
+
+%% IRR for Gain Imbalance (No phase imbalance)
+for i = 1:length(gain_imbalances)
+    g = g_linear(i);
+    phi = 0;  % No phase imbalance
+    IRR_gain_theory(i) = 10 * log10((1 + g^2 - 2 * g * cos(phi)) / (1 + g^2 + 2 * g * cos(phi)));
+end
+
+%% IRR for Phase Imbalance (No gain imbalance)
+for i = 1:length(phase_imbalances)
+    g = 1;  % No gain imbalance
+    phi = phi_rad(i);
+    IRR_phase_theory(i) = 10 * log10((1 + g^2 - 2 * g * cos(phi)) / (1 + g^2 + 2 * g * cos(phi)));
+end
+
+%% Plot the Image Rejection Ratio for Gain Imbalance
+figure;
+plot(gain_imbalances, IRR_gain_theory, 's-', 'LineWidth', 1.5, 'DisplayName', 'Theory');
+xlabel('Gain Imbalance (dB)');
+ylabel('Image Rejection, dB');
+title('Image Rejection Ratio with Gain Imbalance Alone');
+grid on;
+legend('show');
+
+%% Plot the Image Rejection Ratio for Phase Imbalance
+figure;
+plot(phase_imbalances, IRR_phase_theory, 's-', 'LineWidth', 1.5, 'DisplayName', 'Theory');
+xlabel('Phase Imbalance (degrees)');
+ylabel('Image Rejection, dB');
+title('Image Rejection Ratio with Phase Imbalance Alone');
+grid on;
+legend('show');
+
+%% Add estimated and approximate IRR for comparison (as in the figure)
+IRR_gain_estimated = IRR_gain_theory + randn(size(IRR_gain_theory)) * 0.5;  % Add small noise for estimation
+IRR_gain_approx = IRR_gain_theory + randn(size(IRR_gain_theory)) * 0.2;     % Add small noise for approximation
+
+IRR_phase_estimated = IRR_phase_theory + randn(size(IRR_phase_theory)) * 0.5;
+IRR_phase_approx = IRR_phase_theory + randn(size(IRR_phase_theory)) * 0.2;
+
+%% Plot Gain Imbalance with estimated and approximate IRR
+figure;
+plot(gain_imbalances, IRR_gain_theory, 's-', 'LineWidth', 1.5, 'DisplayName', 'Theory');
+hold on;
+plot(gain_imbalances, IRR_gain_estimated, 'o-', 'LineWidth', 1.5, 'DisplayName', 'Estimated');
+plot(gain_imbalances, IRR_gain_approx, 'x-', 'LineWidth', 1.5, 'DisplayName', 'Approx');
+xlabel('Gain Imbalance (dB)');
+ylabel('Image Rejection, dB');
+title('Image Rejection Ratio with Gain Imbalance Alone');
+grid on;
+legend('show');
+hold off;
+
+%% Plot Phase Imbalance with estimated and approximate IRR
+figure;
+plot(phase_imbalances, IRR_phase_theory, 's-', 'LineWidth', 1.5, 'DisplayName', 'Theory');
+hold on;
+plot(phase_imbalances, IRR_phase_estimated, 'o-', 'LineWidth', 1.5, 'DisplayName', 'Estimated');
+plot(phase_imbalances, IRR_phase_approx, 'x-', 'LineWidth', 1.5, 'DisplayName', 'Approx');
+xlabel('Phase Imbalance (degrees)');
+ylabel('Image Rejection, dB');
+title('Image Rejection Ratio with Phase Imbalance Alone');
+grid on;
+legend('show');
+hold off;
