@@ -1,3 +1,5 @@
+%% Owner: Abdelrahman Akram Ibrahim Aly %%
+
 %% Parameters for IQ Imbalance Simulation
 fm = 2e6;          % Message frequency [Hz]
 fc = 5e8;         % Carrier frequency [Hz]
@@ -18,17 +20,16 @@ Z = Zi + 1i * Zq;
 lz = length(Z); 
 f = ((-lz)/2:(lz-1)/2)/lz*fs; 
 
-%% Apply RX IQ imbalance (for testing)
+%% RX IQ imbalance 
 g_test = 1.1;         % Gain imbalance factor
 phai_test = pi/100;   % Phase imbalance (in radians)
 
 % Image Rejection Ratio with RX IQ imbalance
-Image_rejection_ratio_dB = 10*log10((1 + g_test^2 - 2 * g_test * cos(phai_test)) / ...
-                                    (1 + g_test^2 + 2 * g_test * cos(phai_test)));
+Image_rejection_ratio_dB = 10*log10((1 + g_test^2 - 2 * g_test * cos(phai_test)) / (1 + g_test^2 + 2 * g_test * cos(phai_test)));
 
 %% Demodulate with IQ imbalance
-ZiDash = 2 * lowpass(r .* cos(2*pi*fc*t), 0.5);               % I-component without imbalance
-ZqDash = 2 * lowpass(r .* (-g_test * sin(2*pi*fc*t + phai_test)), 0.5); % Q-component with imbalance
+ZiDash = 2 * lowpass(r .* cos(2*pi*fc*t), 0.5);               
+ZqDash = 2 * lowpass(r .* (-g_test * sin(2*pi*fc*t + phai_test)), 0.5); 
 ZDash = ZiDash + 1i * ZqDash;
 
 %% FFT for frequency domain analysis
@@ -37,29 +38,31 @@ Z = fftshift(fft(Z/lz));
 
 % Plot the magnitude spectra (original vs with imbalance)
 figure; 
-plot(f, abs(Z)); % Original signal
+plot(f, abs(Z)); 
 hold on; 
-plot(f, abs(ZDash)); % Signal with RX IQ imbalance 
+plot(f, abs(ZDash)); 
 xlim([-1.5*fm 1.5*fm]); 
 legend('Original Signal', 'Signal at RX with IQ Imbalance'); 
 xlabel('Frequency (Hz)'); 
 ylabel('Magnitude'); 
 title('Frequency Spectrum: Original vs. Signal at RX with IQ Imbalance'); 
+grid on;
 hold off;
 
-% Zoomed-in plot for signal with IQ imbalance
+%% Close-up figure
 figure;
-plot(f, abs(Z)); % Original signal
+plot(f, abs(Z));
 hold on;
-plot(f, abs(ZDash)); % Signal with RX IQ imbalance
-xlim([0.995*fm 1.005*fm]);  % Zoom into the region around the message frequency
+plot(f, abs(ZDash)); 
+xlim([0.995*fm 1.005*fm]);  
 legend('Original Signal', 'Signal at RX with IQ Imbalance');
 xlabel('Frequency (Hz)');
 ylabel('Magnitude');
 title('Close-up Frequency Spectrum: Original vs. Signal at RX with IQ Imbalance');
+grid on;
 hold off;
 
-%% QEC Algorithm (IQ Correction)
+%% QEC Algorithm calculation
 g = sqrt(sum(abs(ZqDash).^2)) / sqrt(sum(abs(ZiDash).^2)); 
 phai = -asin(sum(ZiDash .* ZqDash) / sqrt((sum(abs(ZiDash).^2)) * (sum(abs(ZqDash).^2)))); 
 
@@ -79,6 +82,7 @@ legend('Original Signal', 'Signal after QEC');
 xlabel('Frequency (Hz)'); 
 ylabel('Magnitude'); 
 title('Frequency Spectrum: Original vs. Signal after QEC'); 
+grid on;
 hold off;
 
 %% Parameters for Image Rejection Ratio (IRR) Calculation
