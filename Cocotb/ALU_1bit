@@ -1,0 +1,21 @@
+module ALU_1bit (
+ input logic a,
+ input logic b,
+ input logic [1:0] operation,
+ output logic result
+ );
+ // Operation encoding
+ localparam ADD = 2’b00;
+ localparam SUB = 2’b01;
+ localparam MUL = 2’b10;
+ localparam DIV = 2’b11;
+ always_comb begin
+ case (operation)
+ ADD: result = a + b;
+ SUB: result = a- b;
+ MUL: result = a * b;
+ DIV: result = (b == 0) ? 1’b0 : a / b; // Prevent division by zero
+ default: result = 1’b0;
+ endcase
+ end
+ endmodule
