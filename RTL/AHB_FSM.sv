@@ -1,6 +1,7 @@
 module AHB_FSM (
     input HCLK,HRESETn,ENABLE,WRITE,HREADY,BURST,MIPS_BUSY,
-    output [5:0]STATE
+    output [5:0]STATE,
+    output HTRANS,HWRITE
 );
     
     typedef enum bit [5:0] {
@@ -147,4 +148,7 @@ module AHB_FSM (
         end
         endcase
     end
+
+    assign HTRANS = (cs == IDLE)? 0:(cs == BUSY)? 0:1;
+    assign HWRITE = (cs == SBURSTR)? 0: (cs == INCRBR)? 0:HTRANS;
 endmodule
