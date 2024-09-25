@@ -1,11 +1,12 @@
 module SYSTEM (
-    input [31:0] DATA,OPCODE,RESPONSE,
+    input [31:0] DATA,OPCODE,
     input HCLK,HRESETn,
     output [4:0]RESPONSE_ADDR,
-    output REG_ENABLE,REG_WRITE,DONE,WAIT
+    output REG_ENABLE,REG_WRITE,DONE,WAIT,
+    output [31:0]RESPONSE
 );
-    wire HREADY,HWRITE,HTRANS,HBURST,HSEL1,HSEL2,MUX_SEL,HRDATA_1,HRDATA_2,HREADYOUT_1,HREADYOUT_2;
-    wire [31:0] HWDATA,HADDR,HRDATA;
+    wire HREADY,HWRITE,HTRANS,HBURST,HSEL1,HSEL2,MUX_SEL,HREADYOUT_1,HREADYOUT_2;
+    wire [31:0] HWDATA,HADDR,HRDATA,HRDATA_1,HRDATA_2;
 
     AHB_MASTER mstr (
         .HREADY(HREADY),
@@ -23,7 +24,8 @@ module SYSTEM (
         .REG_ENABLE(REG_ENABLE),
         .REG_WRITE(REG_WRITE),
         .DONE(DONE),
-        .WAIT(WAIT)
+        .WAIT(WAIT),
+        .HRDATA(HRDATA)
         );
     Memory mem_slave (
         .HWRITE(HWRITE),
@@ -32,7 +34,7 @@ module SYSTEM (
         .HSEL1(HSEL1),
         .HBURST(HBURST),
         .HTRANS(HTRANS),
-        .HADDR(HADDR),
+        .HADDR(HADDR[30:0]),
         .HWDATA(HWDATA),
         .HRDATA(HRDATA_1),
         .HREADY(HREADY_1)
