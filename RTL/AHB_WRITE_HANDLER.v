@@ -5,7 +5,8 @@ module AHB_WRITE_HANDLER (
     input [25:0]ADDR,
     output reg [31:0]HWDATA,
     output [31:0]HADDR,
-    output reg HWRITE,DONE,WAIT
+    //output reg HWRITE,
+    output reg DONE,WAIT,HBURST
 );
     reg [31:0]STORED_ADDR;
     reg BURST_ON;
@@ -19,7 +20,7 @@ module AHB_WRITE_HANDLER (
 
     always@(posedge HCLK or negedge HRESETn)begin
         if(!HRESETn)begin
-            HWRITE<=0;
+            //HWRITE<=0;
             HWDATA<=0;
             STORED_ADDR<=0;
             BURST_ON<=0;
@@ -29,7 +30,7 @@ module AHB_WRITE_HANDLER (
         else begin
         if(DONE==0 && HREADY && !BURST_ON)begin
             DONE<=1;
-            HWRITE<=0;
+            //HWRITE<=0;
         end
         else if(BURST_ON && HREADY)begin
             HWDATA<=DATA;
@@ -40,30 +41,32 @@ module AHB_WRITE_HANDLER (
         end
         if(HREADY)
         WAIT<=0;
-    end
 
-    assign HADDR = {11'b0,ADDR[20:0]};
-
-    always@(posedge HCLK or negedge HRESETn)begin
         if(state == SBURSTW)begin
             HWDATA<=DATA;
             DONE<=0;
-            HWRITE<=1;
+            //HWRITE<=1;
         end
         if(state == INCRBW)begin
             if(!BURST_ON)begin
             BURST_ON<=1;
-            HWRITE<=1;
+            //HWRITE<=1;
             DONE<=0;
             HWDATA<=DATA;
+            HBURST<=1;
             end
         end
         if(BURST_ON && !(state == INCRBW || state == BUSY))begin
             BURST_ON<=0;
             if(state != SBURSTW)begin
-            HWRITE<=0;
+            //HWRITE<=0;
             DONE<=1;
+            HBURST<=0;
             end
         end    
-        end
+    end
+
+    assign HADDR = {11'b0,ADDR[20:0]};
+
+    
 endmodule
