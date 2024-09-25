@@ -2,7 +2,7 @@ module AHB_READ_HANDLER (
     input [5:0]state,
     input [31:0]HRDATA,
     input HCLK,HREADY,HRESETn,
-    input [25:0]ADDR,
+    input [25:21]ADDR,
     output reg [31:0]RESPONSE,
     output reg [4:0]RESPONSE_ADDR,
     output reg REG_ENABLE, REG_WRITE
@@ -47,9 +47,6 @@ module AHB_READ_HANDLER (
             REG_ENABLE<=1;
             REG_WRITE<=1;
         end
-        end
-    end
-    always@(posedge HCLK or negedge HRESETn)begin
         if(state == SBURSTR)begin
             STORED_ADDR<=ADDR[25:21];
             SINGLE_ON<=1;
@@ -60,7 +57,8 @@ module AHB_READ_HANDLER (
             BURST_ON<=1;
             end
         end
-        else 
+        else if(state != BUSY)
         BURST_ON<=0;
+        end
     end
 endmodule
