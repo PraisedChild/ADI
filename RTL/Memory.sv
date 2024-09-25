@@ -34,7 +34,7 @@ module Memory (
             HREADY=1;
         end
         ACTIVE_READ:begin
-            HRDATA = mem1[ADDR];
+            
             HREADY = 1;
         end
         ACTIVE_WRITE:begin
@@ -49,11 +49,9 @@ module Memory (
     end
 
     always@(posedge HCLK)begin
-        if(HSEL1)begin
             if(cs == ACTIVE_WRITE) begin
                 mem1 [ADDR] = HWDATA;
             end
-        end
     end
 
     always@(*)begin
@@ -66,8 +64,10 @@ module Memory (
                 if(HWRITE)begin
                     ns = ACTIVE_WRITE;
                 end
-                else
+                else begin
                     ns = ACTIVE_READ;
+                    HRDATA = mem1[ADDR];
+                end
             end
         end
         ACTIVE_READ:begin
